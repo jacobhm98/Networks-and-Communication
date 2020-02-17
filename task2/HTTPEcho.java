@@ -10,6 +10,7 @@ public class HTTPEcho {
         	Socket connectionSocket = welcomeSocket.accept();	//accept new client
         	BufferedReader inFromClient = new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));	//inputstream
         	DataOutputStream outToClient = new DataOutputStream(connectionSocket.getOutputStream());	//outputstream
+		String httpOK =  "HTTP/1.1 200 OK\r\n\r\n"; //HTTP header we need to preface response with
         	String lineFromClient = inFromClient.readLine();	//first line read from client
         	StringBuilder tempResult = new StringBuilder();	//where we build our response
 
@@ -19,8 +20,9 @@ public class HTTPEcho {
         		lineFromClient = inFromClient.readLine();	//read next line
         	}
 
-        	String httpResponse = tempResult.toString();	//turn response into string
+        	String httpResponse = httpOK + tempResult.toString();	//turn response into string
         	outToClient.writeBytes(httpResponse);	//write it to our client
+		System.out.println("Response sent to client: \n" + httpResponse);
         	connectionSocket.close();	//close the socket and wait for new response
         }
     }
