@@ -1,78 +1,115 @@
 import java.net.*;
 import java.io.*;
 
+/* A class which implements an HTTP server that accepts GET requests, extracts the 
+ */
+
 public class HTTPAsk {
-    public static void main( String[] args) throws IOException {
-        int port = Integer.parseInt(args[0]);	//get portnumber from commandline
-        ServerSocket welcomeSocket = new ServerSocket(port);	//create new socket with specified port
+	public static void main( String[] args) throws IOException {
+		int listenPort = Integer.parseInt(args[0]);	//get portnumber from commandline
+		ServerSocket welcomeSocket = new ServerSocket(listenPort);	//create new socket with specified port
+		
+		//Wait for, accept tcp connections, and process HTTP GET requests
+		while (true){
+			//Datastructures needed for generating response
+			String queryResponse;	//if the request is of the right form, this is what we get from the server we send a query to using TCPAsk
+			String host = null;	//When we extract the hostname, this is where we will store it
+			String port = null;	//store port here
+			String data = null;
 
-        while (true){
-        	Socket connectionSocket = welcomeSocket.accept();	//accept new client
-        	BufferedReader inFromClient = new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));	//inputstream
-        	DataOutputStream outToClient = new DataOutputStream(connectionSocket.getOutputStream());	//outputstream
-        	String lineFromClient = inFromClient.readLine();	//first line read from client
-        	StringBuilder tempResult = new StringBuilder();	//where we build our response
-        	String headerMsg = inFromClient.readLine();
-        	boolean error404 = false;
-        	boolean error400 = false;
-        	String host = null;
-        	String destPort = null;
-        	String string = null;
+			//Logic to determine if we need to generate error message
+			boolean err400 = false;
+			boolean err404 = false;
 
-        	while(!lineFromClient.isEmpty()){	//while we are still receiving information
-        		tempResult = tempResult.append(lineFromClient);	//add line to our string
-        		tempResult = tempResult.append("\r\n");		//prep for next line
-        		lineFromClient = inFromClient.readLine();	//read next line
-        	}
+			try {
+				//Accept connection from client, and set up input and output streams for interacting with the client
+        			Socket connectionSocket = welcomeSocket.accept();
+        			BufferedReader inFromClient = new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
+        			DataOutputStream outToClient = new DataOutputStream(connectionSocket.getOutputStream());
+				
+				//Read the request message	
+				String readLine = inFromClient.readLine();
+				String httpHeader = readLine;
 
-        	try{
-        		String[] request = headerMsg.split("/");
-        		String[] filteredRequest = request[1].split(" ");
-        		String finalRequest = filteredRequest[0];
+				//discard the rest of the message, we are only interested in dissecting the URI
+				//which is located in the header of the GET Request
+				while (!readLine.isEmpty()){
+					readLine = inFromClient.readLine();
+				}
+				try{
+					//split the request by /, will hopefully split it into 3 parts p0: "GET " p1: "$URI HTTP" p3: "1.1"
+					String[] headerParts = httpHeader.split("/");
+					String p1 = headerParts[1];
+					//split p1 by space, the first part of p1 contains the URI which is what we are after
+					headerParts = p1.split(" ");
+					String URI = headerParts[0];
+					
+					//If the URI contains the necessary information our server needs to set up a tcp connection
+					//as specified by the task instructions
+					if (URI.contains("ask") && URI.contains("hostname") && URI.contains("port")){
+						//format of URI: ask?hostname=time.nist.gov&port=13, get rid of ask? by advancing the start of the string to index 4
+						URI = URI.substring(4); 
+						String[] arguments = URI.split("&");
+						//hostnameA = "hostname=time.nist.gov"
+						String hostnameA = arguments[0];
+						String[] tempArg = hostnameA.split("=");
+						//host = time.nist.gov
+						host = tempArg[1];
+						//portA = "port=13"
+						String portA = arguments[1];
+						tempArg = portA.split("=");
+						//port = 13
+						port = tempArg[1];
 
-        		if (finalRequest.contains("ask") && finalRequest.contains("hostname") && finalRequest.contains("port")){ //check if the request contains the necessary subparts
-        			String[] newRequest = finalRequest.split("?"); 
-        			String tempRequest = newRequest[1];
-        			String[] arguments = tempRequest.split("&");
-        			host = arguments[0];
-        			destPort = arguments[1];
-        			String[] tempHost = host.split("=");
-        			host = tempHost[1];
-        			String[] tempPort = destPort.split("=");
-        			destPort = tempPort[1];
+						//If our tcp request is to accept a string to send
+						if (URI.contains("string")){
+							//dataA = "string=datatosendtoserver"
+							String dataA = arguments[2];
+							tempArg = dataA.split("=");
+							data = tempArg[1];
+						}
+					}
+					else {
+						err404 = true;
+					}
+				}
+				catch (Exception e) {
+					//the format of the request is wrong
+					err400 = true;
+				}
+				//string holding the answer we get from the server we query using tcpAsk, and string
+				//holding our response we will send to the asking client
+				String tcpAskResponse = null;
+				String response = null;
+				if (!err400 && !err404){
+					try{
+						tcpAskResponse = TCPClient.askServer(host, Integer.parseInt(port), data);
+					}
+					//if tcpclient cannot successfully send the query
+					catch (Exception e){
+						err400 = true;
+					}
+				}
+				//if theres been a 400 error, let the user know 
+				else if (err400){
+					response = "HTTP/1.1 400 bad request\r\n\r\n";
+				}
+				//print 404 error
+				else if (err404){
+					response = "HTTP/1.1 404 not foundn \r\n\r\n";
+				}
+				//if all has gone well, print 200 OK code, plus response we got from tcpAsk
+				else {
+					response = "HTTP/1.1 200 OK\r\n\r\n" + tcpAskResponse;
+				}
+				//send the response to the asking client and close the connection
+				outToClient.writeBytes(response);
+				connectionSocket.close();
+			}	
+			catch (IOException e) {
+				System.err.println("Failed to read data from client");
 
-        			if(finalRequest.contains("string")){
-        				String[] tempString = arguments[2].split("=");
-                        string = tempString[1];
-        			}
-
-        		}
-        		else{
-        			error404 = true;
-
-        		}
-        }
-        catch(Exception e){
-        	error400 = true;
-        }
-        String clientResponse = null;
-        String responseMessage;
-        if(!error400 && !error404){
-         	int portNumber = Integer.parseInt(destPort);
-        	clientResponse = TCPClient.askServer(host, portNumber, string);
-        }
-        if(error404){
-        	responseMessage = "HTTP/1.1 404 not found\r\n\r\n404 error";
-        }
-        if(error400){
-        	responseMessage = "HTTP/1.1 400 bad request\r\n\r\n400 error";
-        }
-        else{
-        	responseMessage = "HTTP/1.1 200 OK\r\n\r\n" + clientResponse;
-        }
-        outToClient.writeBytes(responseMessage);
-        connectionSocket.close();	//close the socket and wait for new response
-        }
-    }
+			}
+		}
+	}
 }
-
