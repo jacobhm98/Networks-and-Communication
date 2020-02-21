@@ -84,6 +84,7 @@ public class HTTPAsk {
 				if (!err400 && !err404){
 					try{
 						tcpAskResponse = TCPClient.askServer(host, Integer.parseInt(port), data);
+						System.out.println(tcpAskResponse);
 					}
 					//if tcpclient cannot successfully send the query
 					catch (Exception e){
@@ -107,7 +108,7 @@ public class HTTPAsk {
 				connectionSocket.close();
 			}	
 			catch (IOException e) {
-				System.err.println("Failed to read data from client");
+				System.err.println("Failed to establish connection with client");
 
 			}
 		}
