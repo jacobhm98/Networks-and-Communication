@@ -12,7 +12,6 @@ public class HTTPAsk {
 		//Wait for, accept tcp connections, and process HTTP GET requests
 		while (true){
 			//Datastructures needed for generating response
-			String queryResponse;	//if the request is of the right form, this is what we get from the server we send a query to using TCPAsk
 			String host = null;	//When we extract the hostname, this is where we will store it
 			String port = null;	//store port here
 			String data = null;
@@ -96,7 +95,7 @@ public class HTTPAsk {
 					}
 				}
 				//if theres been a 400 error, let the user know 
-				else if (err400){
+				if (err400){
 					response = "HTTP/1.1 400 bad request\r\n\r\n";
 				}
 				//print 404 error
