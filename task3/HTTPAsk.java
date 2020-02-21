@@ -26,7 +26,8 @@ public class HTTPAsk {
         			Socket connectionSocket = welcomeSocket.accept();
         			BufferedReader inFromClient = new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
         			DataOutputStream outToClient = new DataOutputStream(connectionSocket.getOutputStream());
-				
+				System.out.println("connected to client over socket");
+
 				//Read the request message	
 				String readLine = inFromClient.readLine();
 				String httpHeader = readLine;
@@ -60,6 +61,8 @@ public class HTTPAsk {
 						tempArg = portA.split("=");
 						//port = 13
 						port = tempArg[1];
+						System.out.println("Hostname: " +  host);
+						System.out.println("Port: " + port);
 
 						//If our tcp request is to accept a string to send
 						if (URI.contains("string")){
@@ -67,6 +70,7 @@ public class HTTPAsk {
 							String dataA = arguments[2];
 							tempArg = dataA.split("=");
 							data = tempArg[1];
+							System.out.println("String to send as arg: " + data);
 						}
 					}
 					else {
@@ -84,7 +88,7 @@ public class HTTPAsk {
 				if (!err400 && !err404){
 					try{
 						tcpAskResponse = TCPClient.askServer(host, Integer.parseInt(port), data);
-						System.out.println(tcpAskResponse);
+						System.out.println("Response from server: " + tcpAskResponse);
 					}
 					//if tcpclient cannot successfully send the query
 					catch (Exception e){
