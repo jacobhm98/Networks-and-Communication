@@ -1,7 +1,9 @@
 import java.net.*;
 import java.io.*;
 
-/* A class which implements an HTTP server that accepts GET requests, extracts the 
+/* A class which implements an HTTP server that accepts GET requests, extracts data from the URI according to a specified
+ * API, and sends a TCP request to the server with given params. Tells you if a HTTP 400 (bad request) or 404 (not found)
+ * error is thrown.
  */
 
 public class HTTPAsk {
